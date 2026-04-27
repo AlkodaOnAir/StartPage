@@ -3903,6 +3903,9 @@
     }
 
     function scheduleTopbarHide(delay = 120) {
+      if (window.innerWidth <= 768) {
+        return;
+      }
       clearTopbarHideTimer();
       state.topbarHideTimer = window.setTimeout(() => {
         if (!state.currentSession) {
@@ -5294,7 +5297,12 @@
     }
     document.getElementById("mobileSettingsBtn").addEventListener("click", (e) => {
       e.stopPropagation();
-      document.getElementById("mobileSettingsMenu").classList.toggle("open");
+      const menu = document.getElementById("mobileSettingsMenu");
+      menu.classList.toggle("open");
+      if (menu.classList.contains("open")) {
+        clearTopbarHideTimer();
+        setTopbarVisible(true);
+      }
     });
     document.getElementById("mobileLogoutBtn").addEventListener("click", () => {
       closeMobileMenu();
@@ -5644,6 +5652,14 @@
       }
       scheduleTopbarHide();
     });
+
+    ui.topbar?.addEventListener("touchstart", () => {
+      if (!state.currentSession) {
+        return;
+      }
+      clearTopbarHideTimer();
+      setTopbarVisible(true);
+    }, { passive: true });
 
     ui.topbar?.addEventListener("transitionend", event => {
       if (event.propertyName === "transform") {
