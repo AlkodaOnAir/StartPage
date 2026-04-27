@@ -3875,6 +3875,9 @@
       if (state.editMode) {
         return true;
       }
+      if (document.getElementById("mobileSettingsMenu")?.classList.contains("open")) {
+        return true;
+      }
       return Boolean(document.querySelector(".overlay.open"));
     }
 
