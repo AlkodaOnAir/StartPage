@@ -3491,9 +3491,10 @@
         const parsed = new URL(normalizeUrl(url));
         const origin = parsed.origin;
         const hostname = parsed.hostname;
+        const rootDomain = hostname.replace(/^www\./, "");
         return [
-          { label: "Logo HD", url: `https://logo.clearbit.com/${hostname}?size=512` },
-          { label: "Logo", url: `https://logo.clearbit.com/${hostname}` },
+          { label: "Logo HD", url: `https://logo.clearbit.com/${rootDomain}?size=512` },
+          { label: "Logo", url: `https://logo.clearbit.com/${rootDomain}` },
           { label: "Apple Touch Icon", url: `${origin}/apple-touch-icon.png` },
           { label: "Apple Touch Icon 2", url: `${origin}/apple-touch-icon-precomposed.png` },
           { label: "App Icon 512", url: `${origin}/android-chrome-512x512.png` },
@@ -3527,12 +3528,29 @@
 
     async function renderWebSuggestions() {
       const requestId = ++state.webSuggestionsRequestId;
-      const candidates = logoCandidatesFor(ui.tileUrl.value);
+      const rawUrl = ui.tileUrl.value;
+      const candidates = logoCandidatesFor(rawUrl);
       ui.webSuggestions.innerHTML = "";
       ui.webSuggestions.classList.toggle("hidden", candidates.length === 0);
       if (!candidates.length) {
         return;
       }
+
+      // Enrichir avec Microlink (logo + og:image)
+      try {
+        const microlinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(normalizeUrl(rawUrl))}`);
+        if (requestId !== state.webSuggestionsRequestId) return;
+        if (microlinkRes.ok) {
+          const microlinkData = await microlinkRes.json();
+          if (requestId !== state.webSuggestionsRequestId) return;
+          const logoUrl = microlinkData?.data?.logo?.url;
+          const imageUrl = microlinkData?.data?.image?.url;
+          if (logoUrl) candidates.unshift({ label: "Logo (Microlink)", url: logoUrl });
+          if (imageUrl) candidates.splice(1, 0, { label: "Image (Microlink)", url: imageUrl });
+        }
+      } catch { /* silencieux si Microlink échoue */ }
+
+      if (requestId !== state.webSuggestionsRequestId) return;
 
       const uniqueCandidates = candidates.filter((candidate, index, list) =>
         list.findIndex(entry => entry.url === candidate.url) === index
