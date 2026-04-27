@@ -4858,7 +4858,7 @@
         const { error } = await sbClient.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: window.location.href
+            redirectTo: "https://start.alkoda-onair.com"
           }
         });
         if (error) throw error;
