@@ -1645,6 +1645,92 @@
         font-size: 1.3rem;
       }
     }
+
+    #mobileSettingsBtn {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .top-actions {
+        display: none !important;
+      }
+
+      #mobileSettingsBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        width: 38px;
+        height: 38px;
+        cursor: pointer;
+        color: var(--text);
+        flex-shrink: 0;
+      }
+
+      #mobileSettingsBtn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .mobile-settings-wrap {
+        position: relative;
+      }
+
+      #mobileSettingsMenu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 6px;
+        min-width: 180px;
+        z-index: 200;
+        box-shadow: var(--shadow);
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      #mobileSettingsMenu.open {
+        display: flex;
+      }
+
+      .mobile-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: none;
+        border: none;
+        color: var(--text);
+        font-size: 0.92rem;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+      }
+
+      .mobile-menu-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .mobile-menu-item.danger {
+        color: var(--danger);
+      }
+
+      .mobile-menu-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 0;
+      }
+
+      .brand-wrap {
+        justify-content: space-between;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1745,6 +1831,20 @@
           <div class="brand-title">Alkoda StartPage</div>
         </div>
       </div>
+      <div class="mobile-settings-wrap">
+        <button id="mobileSettingsBtn" type="button" aria-label="Paramètres">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path d="M19.14 12.94a7.99 7.99 0 0 0 .05-.94 7.99 7.99 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94l-.36-2.54A.49.49 0 0 0 13.9 2h-3.8a.49.49 0 0 0-.49.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.03.31-.05.63-.05.94s.02.63.05.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54a.49.49 0 0 0 .49.42h3.8a.49.49 0 0 0 .49-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
+          </svg>
+        </button>
+        <div id="mobileSettingsMenu">
+          <button class="lang-opt mobile-menu-item" type="button" onclick="setLang('fr');closeMobileMenu()">🇫🇷 Français</button>
+          <button class="lang-opt mobile-menu-item" type="button" onclick="setLang('en');closeMobileMenu()">🇬🇧 English</button>
+          <div class="mobile-menu-divider"></div>
+          <button class="mobile-menu-item danger" type="button" id="mobileLogoutBtn">Déconnexion</button>
+        </div>
+      </div>
+
       <div class="top-actions">
         <div class="edit-tools">
           <button id="editWebmixBtn" class="btn" type="button" data-i18n="edit_webmix_button">Editer la grille</button>
@@ -5180,6 +5280,20 @@
         showDebug(t("init_error", { message: error.message || error }));
       }
     }
+
+    // Menu mobile
+    function closeMobileMenu() {
+      document.getElementById("mobileSettingsMenu").classList.remove("open");
+    }
+    document.getElementById("mobileSettingsBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("mobileSettingsMenu").classList.toggle("open");
+    });
+    document.getElementById("mobileLogoutBtn").addEventListener("click", () => {
+      closeMobileMenu();
+      logout();
+    });
+    document.addEventListener("click", () => closeMobileMenu());
 
     ui.googleLoginBtn.addEventListener("click", loginWithGoogle);
     ui.loginBtn.addEventListener("click", login);
