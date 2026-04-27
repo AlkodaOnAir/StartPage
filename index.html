@@ -3492,19 +3492,16 @@
         const origin = parsed.origin;
         const hostname = parsed.hostname;
         return [
-          { label: "Favicon 128", url: `https://www.google.com/s2/favicons?domain=${hostname}&sz=128` },
-          { label: "favicon.ico", url: `${origin}/favicon.ico` },
-          { label: "favicon 32", url: `${origin}/favicon-32x32.png` },
-          { label: "favicon 16", url: `${origin}/favicon-16x16.png` },
-          { label: "icon 192", url: `${origin}/icon-192.png` },
-          { label: "apple touch", url: `${origin}/apple-touch-icon.png` },
-          { label: "android 192", url: `${origin}/android-chrome-192x192.png` },
-          { label: "android 512", url: `${origin}/android-chrome-512x512.png` },
-          { label: "logo", url: `${origin}/logo.png` },
-          { label: "logo svg", url: `${origin}/logo.svg` },
-          { label: "img logo", url: `${origin}/img/logo.png` },
-          { label: "images logo", url: `${origin}/images/logo.png` },
-          { label: "assets logo", url: `${origin}/assets/logo.png` }
+          { label: "Logo HD", url: `https://logo.clearbit.com/${hostname}?size=512` },
+          { label: "Logo", url: `https://logo.clearbit.com/${hostname}` },
+          { label: "Apple Touch Icon", url: `${origin}/apple-touch-icon.png` },
+          { label: "Apple Touch Icon 2", url: `${origin}/apple-touch-icon-precomposed.png` },
+          { label: "App Icon 512", url: `${origin}/android-chrome-512x512.png` },
+          { label: "App Icon 192", url: `${origin}/android-chrome-192x192.png` },
+          { label: "Logo PNG", url: `${origin}/logo.png` },
+          { label: "Logo SVG", url: `${origin}/logo.svg` },
+          { label: "Assets Logo", url: `${origin}/assets/logo.png` },
+          { label: "Img Logo", url: `${origin}/img/logo.png` },
         ];
       } catch {
         return [];
