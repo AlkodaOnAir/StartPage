@@ -3486,15 +3486,43 @@
       throw new Error(t("drop_local_image_only"));
     }
 
-    function logoCandidatesFor(url) {
+    function logoCandidatesFor(url, title = "") {
       try {
         const parsed = new URL(normalizeUrl(url));
         const origin = parsed.origin;
         const hostname = parsed.hostname;
         const rootDomain = hostname.replace(/^www\./, "");
+
+        // Variantes du domaine : on retire les suffixes communs pour trouver la marque racine
+        const domainBase = rootDomain.replace(/\.(com|fr|net|org|io|co|uk|eu|be|ch|ca|de|es|it|jp|au|us)$/i, "");
+        const suffixesToStrip = ["teas", "tea", "shop", "store", "online", "official", "france", "group", "brand", "web", "site", "app"];
+        let brandGuess = domainBase;
+        for (const s of suffixesToStrip) {
+          if (brandGuess.toLowerCase().endsWith(s) && brandGuess.length > s.length) {
+            brandGuess = brandGuess.slice(0, -s.length);
+            break;
+          }
+        }
+
+        // Variantes depuis le titre de la tuile
+        const titleSlug = title.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+        const clearbitDomains = new Set();
+        clearbitDomains.add(rootDomain);
+        if (brandGuess && brandGuess !== domainBase) {
+          clearbitDomains.add(`${brandGuess}.com`);
+        }
+        if (titleSlug && titleSlug !== domainBase && titleSlug !== brandGuess) {
+          clearbitDomains.add(`${titleSlug}.com`);
+        }
+
+        const clearbitCandidates = [...clearbitDomains].map(d => ({
+          label: `Clearbit (${d})`,
+          url: `https://logo.clearbit.com/${d}?size=512`
+        }));
+
         return [
-          { label: "Logo HD", url: `https://logo.clearbit.com/${rootDomain}?size=512` },
-          { label: "Logo", url: `https://logo.clearbit.com/${rootDomain}` },
+          ...clearbitCandidates,
           { label: "Apple Touch Icon", url: `${origin}/apple-touch-icon.png` },
           { label: "Apple Touch Icon 2", url: `${origin}/apple-touch-icon-precomposed.png` },
           { label: "App Icon 512", url: `${origin}/android-chrome-512x512.png` },
@@ -3529,7 +3557,7 @@
     async function renderWebSuggestions() {
       const requestId = ++state.webSuggestionsRequestId;
       const rawUrl = ui.tileUrl.value;
-      const candidates = logoCandidatesFor(rawUrl);
+      const candidates = logoCandidatesFor(rawUrl, ui.tileTitle.value);
       ui.webSuggestions.innerHTML = "";
       ui.webSuggestions.classList.toggle("hidden", candidates.length === 0);
       if (!candidates.length) {
@@ -3580,7 +3608,7 @@
         button.type = "button";
         button.className = "web-suggestion";
         button.title = candidate.label;
-        button.innerHTML = `<img src="${escapeHtml(candidate.url)}" alt="${escapeHtml(candidate.label)}">`;
+        button.innerHTML = `<img src="${escapeHtml(candidate.url)}" alt="${escapeHtml(candidate.label)}"><span class="web-suggestion-label">${escapeHtml(candidate.label)}</span>`;
         button.addEventListener("click", () => {
           ui.tileImage.value = candidate.url;
           state.webImageEnabled = true;
