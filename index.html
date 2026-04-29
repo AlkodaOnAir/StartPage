@@ -1292,6 +1292,20 @@
       display: block;
     }
 
+    .web-suggestion-label {
+      font-size: 0.5em;
+      color: var(--muted);
+      text-align: center;
+      word-break: break-all;
+      line-height: 1.2;
+    }
+
+    #autoLogoBtn.loading {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
     .mode-list {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3556,11 +3570,13 @@
 
     async function renderWebSuggestions() {
       const requestId = ++state.webSuggestionsRequestId;
+      ui.autoLogoBtn.classList.add("loading");
       const rawUrl = ui.tileUrl.value;
       const candidates = logoCandidatesFor(rawUrl, ui.tileTitle.value);
       ui.webSuggestions.innerHTML = "";
       ui.webSuggestions.classList.toggle("hidden", candidates.length === 0);
       if (!candidates.length) {
+        ui.autoLogoBtn.classList.remove("loading");
         return;
       }
 
@@ -3598,6 +3614,7 @@
         }
       }
 
+      ui.autoLogoBtn.classList.remove("loading");
       ui.webSuggestions.classList.toggle("hidden", available.length === 0);
       if (!available.length) {
         return;
