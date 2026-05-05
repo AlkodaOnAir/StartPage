@@ -2759,6 +2759,7 @@
       importedBookmarks: [],
       importedFileKind: null,
       importedGridData: null,
+      exportSelectionInitialized: false,
       exportSelectedTileIds: new Set(),
       topbarVisible: true,
       topbarHideTimer: null,
@@ -3032,8 +3033,9 @@
       state.exportSelectedTileIds = new Set(
         [...state.exportSelectedTileIds].filter(id => exportableIds.has(id))
       );
-      if (!state.exportSelectedTileIds.size) {
+      if (!state.exportSelectionInitialized) {
         state.exportSelectedTileIds = new Set(exportableIds);
+        state.exportSelectionInitialized = true;
       }
     }
 
@@ -3289,6 +3291,32 @@
       return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     }
 
+    async function saveTextFile(filename, content, type, description, extension) {
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description,
+              accept: { [type.split(";")[0]]: [extension] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(new Blob([content], { type }));
+          await writable.close();
+          return true;
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            return false;
+          }
+          downloadTextFile(filename, content, type);
+          return true;
+        }
+      }
+      downloadTextFile(filename, content, type);
+      return true;
+    }
+
     function downloadTextFile(filename, content, type) {
       const blob = new Blob([content], { type });
       const blobUrl = URL.createObjectURL(blob);
@@ -3301,8 +3329,14 @@
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
     }
 
-    function exportedTiles() {
-      return [...state.tiles]
+    function selectedExportTiles() {
+      ensureExportSelection();
+      return exportableTiles()
+        .filter(tile => state.exportSelectedTileIds.has(String(tile.id)));
+    }
+
+    function exportedTiles(tiles = selectedExportTiles()) {
+      return [...tiles]
         .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
         .map(tile => ({
           position: Number(tile.position) || 0,
@@ -3315,7 +3349,12 @@
         }));
     }
 
-    function exportGridJson() {
+    async function exportGridJson() {
+      const tiles = selectedExportTiles();
+      if (!tiles.length) {
+        setStatus(ui.bookmarksStatus, t("export_select_one"), "error");
+        return;
+      }
       const now = new Date();
       const payload = {
         app: "Alkoda StartPage",
@@ -3323,19 +3362,27 @@
         version: 1,
         exportedAt: now.toISOString(),
         config: JSON.parse(JSON.stringify(state.config)),
-        tiles: exportedTiles()
+        tiles: exportedTiles(tiles)
       };
 
-      downloadTextFile(
+      const saved = await saveTextFile(
         `alkoda-startpage-grid-${exportDateStamp()}.json`,
         JSON.stringify(payload, null, 2),
-        "application/json;charset=utf-8"
+        "application/json;charset=utf-8",
+        "JSON",
+        ".json"
       );
+      if (saved) setStatus(ui.bookmarksStatus, t("export_saved"), "ok");
     }
 
-    function exportBookmarksHtml() {
+    async function exportBookmarksHtml() {
+      const tiles = selectedExportTiles();
+      if (!tiles.length) {
+        setStatus(ui.bookmarksStatus, t("export_select_one"), "error");
+        return;
+      }
       const timestamp = Math.floor(Date.now() / 1000);
-      const bookmarkItems = exportedTiles()
+      const bookmarkItems = exportedTiles(tiles)
         .filter(tile => normalizeUrl(tile.url))
         .map(tile => {
           const imageData = parseTileImageData(tile.image);
@@ -3367,11 +3414,14 @@
         "</DL><p>"
       ].filter(line => line !== "").join("\n");
 
-      downloadTextFile(
+      const saved = await saveTextFile(
         `alkoda-startpage-bookmarks-${exportDateStamp()}.html`,
         html,
-        "text/html;charset=utf-8"
+        "text/html;charset=utf-8",
+        "HTML bookmarks",
+        ".html"
       );
+      if (saved) setStatus(ui.bookmarksStatus, t("export_saved"), "ok");
     }
 
     function passwordEyeSvg(isVisible) {
@@ -5666,6 +5716,16 @@
     ui.bookmarksClearBtn.addEventListener("click", () => {
       state.importedBookmarks = state.importedBookmarks.map(item => ({ ...item, selected: false }));
       renderImportedBookmarks();
+    });
+    ui.bookmarksExportSelectAllBtn.addEventListener("click", () => {
+      state.exportSelectionInitialized = true;
+      state.exportSelectedTileIds = new Set(exportableTiles().map(tile => String(tile.id)));
+      renderExportTiles();
+    });
+    ui.bookmarksExportClearBtn.addEventListener("click", () => {
+      state.exportSelectionInitialized = true;
+      state.exportSelectedTileIds = new Set();
+      renderExportTiles();
     });
     ui.bookmarksExportJsonBtn.addEventListener("click", exportGridJson);
     ui.bookmarksExportHtmlBtn.addEventListener("click", exportBookmarksHtml);
