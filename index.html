@@ -1959,12 +1959,19 @@
       <div class="bookmarks-export">
         <div class="bookmarks-section-title" data-i18n="export_section_title">Export</div>
         <div class="bookmark-actions">
-          <button id="bookmarksExportSelectAllBtn" class="btn" type="button" data-i18n="select_all_button">Tout cocher</button>
-          <button id="bookmarksExportClearBtn" class="btn" type="button" data-i18n="clear_all_button">Tout decocher</button>
           <button id="bookmarksExportJsonBtn" class="btn" type="button" data-i18n="export_json_button">Exporter en JSON</button>
           <button id="bookmarksExportHtmlBtn" class="btn" type="button" data-i18n="export_html_button">Exporter en HTML</button>
         </div>
-        <div id="bookmarksExportList" class="bookmarks-list export-list"></div>
+        <div id="bookmarksExportPanel" class="hidden">
+          <div class="bookmark-actions">
+            <button id="bookmarksExportSelectAllBtn" class="btn" type="button" data-i18n="select_all_button">Tout cocher</button>
+            <button id="bookmarksExportClearBtn" class="btn" type="button" data-i18n="clear_all_button">Tout decocher</button>
+          </div>
+          <div id="bookmarksExportList" class="bookmarks-list export-list"></div>
+          <div class="bookmark-actions">
+            <button id="bookmarksExportConfirmBtn" class="btn primary" type="button" data-i18n="export_confirm_button">Exporter la selection</button>
+          </div>
+        </div>
       </div>
       <div class="field">
         <label for="bookmarksFile" data-i18n="bookmarks_file_label">Fichier HTML ou JSON</label>
@@ -2298,6 +2305,7 @@
         export_section_title: "Export",
         export_json_button: "Exporter en JSON",
         export_html_button: "Exporter en HTML",
+        export_confirm_button: "Exporter la selection",
         cancel_button: "Annuler",
         import_button: "Importer",
         account_title: "Reglages du compte",
@@ -2463,6 +2471,7 @@
         export_section_title: "Export",
         export_json_button: "Export as JSON",
         export_html_button: "Export as HTML",
+        export_confirm_button: "Export selection",
         cancel_button: "Cancel",
         import_button: "Import",
         account_title: "Account settings",
@@ -2653,6 +2662,8 @@
       bookmarksExportClearBtn: $("bookmarksExportClearBtn"),
       bookmarksExportJsonBtn: $("bookmarksExportJsonBtn"),
       bookmarksExportHtmlBtn: $("bookmarksExportHtmlBtn"),
+      bookmarksExportConfirmBtn: $("bookmarksExportConfirmBtn"),
+      bookmarksExportPanel: $("bookmarksExportPanel"),
       bookmarksExportList: $("bookmarksExportList"),
       bookmarksList: $("bookmarksList"),
       bookmarksStatus: $("bookmarksStatus"),
@@ -2759,6 +2770,7 @@
       importedBookmarks: [],
       importedFileKind: null,
       importedGridData: null,
+      exportMode: "",
       exportSelectionInitialized: false,
       exportSelectedTileIds: new Set(),
       topbarVisible: true,
@@ -3075,6 +3087,27 @@
       });
     }
 
+    function resetExportPanel() {
+      state.exportMode = "";
+      state.exportSelectionInitialized = false;
+      state.exportSelectedTileIds = new Set();
+      ui.bookmarksExportPanel.classList.add("hidden");
+      ui.bookmarksExportList.innerHTML = "";
+      ui.bookmarksExportJsonBtn.classList.remove("primary");
+      ui.bookmarksExportHtmlBtn.classList.remove("primary");
+    }
+
+    function startExport(format) {
+      state.exportMode = format;
+      state.exportSelectionInitialized = false;
+      state.exportSelectedTileIds = new Set();
+      ui.bookmarksExportPanel.classList.remove("hidden");
+      ui.bookmarksExportJsonBtn.classList.toggle("primary", format === "json");
+      ui.bookmarksExportHtmlBtn.classList.toggle("primary", format === "html");
+      setStatus(ui.bookmarksStatus, "");
+      renderExportTiles();
+    }
+
     function renderImportFileState() {
       const isGridImport = state.importedFileKind === "grid" && state.importedGridData;
       ui.bookmarksSizeBtn.classList.toggle("hidden", Boolean(isGridImport));
@@ -3140,7 +3173,7 @@
       setStatus(ui.bookmarksStatus, "");
       ui.bookmarksModal.classList.add("open");
       bringOverlayToFront(ui.bookmarksModal);
-      renderExportTiles();
+      resetExportPanel();
     }
 
     function closeBookmarksModal() {
@@ -3422,6 +3455,16 @@
         ".html"
       );
       if (saved) setStatus(ui.bookmarksStatus, t("export_saved"), "ok");
+    }
+
+    function exportSelectedTiles() {
+      if (state.exportMode === "json") {
+        exportGridJson();
+        return;
+      }
+      if (state.exportMode === "html") {
+        exportBookmarksHtml();
+      }
     }
 
     function passwordEyeSvg(isVisible) {
@@ -5727,8 +5770,9 @@
       state.exportSelectedTileIds = new Set();
       renderExportTiles();
     });
-    ui.bookmarksExportJsonBtn.addEventListener("click", exportGridJson);
-    ui.bookmarksExportHtmlBtn.addEventListener("click", exportBookmarksHtml);
+    ui.bookmarksExportJsonBtn.addEventListener("click", () => startExport("json"));
+    ui.bookmarksExportHtmlBtn.addEventListener("click", () => startExport("html"));
+    ui.bookmarksExportConfirmBtn.addEventListener("click", exportSelectedTiles);
     ui.bookmarksSizeBtn.addEventListener("click", () => {
       state.bookmarksImportSnapshot = true;
       openSizeModal();
