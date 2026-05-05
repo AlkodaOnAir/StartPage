@@ -1012,6 +1012,22 @@
       font-size: 0.92rem;
     }
 
+    .bookmarks-export {
+      margin-bottom: 12px;
+    }
+
+    .bookmarks-section-title {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .export-list {
+      max-height: 190px;
+      margin-top: 10px;
+    }
+
     .bookmarks-count {
       font-size: 1.5em;
       font-weight: 800;
@@ -1940,6 +1956,16 @@
         <div id="bookmarksAvailable">0 tuiles disponibles dans la grille</div>
         <button id="bookmarksSizeBtn" class="btn" type="button" data-i18n="size_button">Taille</button>
       </div>
+      <div class="bookmarks-export">
+        <div class="bookmarks-section-title" data-i18n="export_section_title">Export</div>
+        <div class="bookmark-actions">
+          <button id="bookmarksExportSelectAllBtn" class="btn" type="button" data-i18n="select_all_button">Tout cocher</button>
+          <button id="bookmarksExportClearBtn" class="btn" type="button" data-i18n="clear_all_button">Tout decocher</button>
+          <button id="bookmarksExportJsonBtn" class="btn" type="button" data-i18n="export_json_button">Exporter en JSON</button>
+          <button id="bookmarksExportHtmlBtn" class="btn" type="button" data-i18n="export_html_button">Exporter en HTML</button>
+        </div>
+        <div id="bookmarksExportList" class="bookmarks-list export-list"></div>
+      </div>
       <div class="field">
         <label for="bookmarksFile" data-i18n="bookmarks_file_label">Fichier HTML ou JSON</label>
         <input id="bookmarksFile" type="file" accept=".html,text/html,.json,application/json" />
@@ -1947,7 +1973,6 @@
       <div class="bookmark-actions">
         <button id="bookmarksSelectAllBtn" class="btn" type="button" data-i18n="select_all_button">Tout cocher</button>
         <button id="bookmarksClearBtn" class="btn" type="button" data-i18n="clear_all_button">Tout decocher</button>
-        <button id="bookmarksExportBtn" class="btn" type="button" data-i18n="export_grid_button">Exporter la grille</button>
       </div>
       <div id="bookmarksList" class="bookmarks-list hidden"></div>
       <div id="bookmarksStatus" class="status"></div>
@@ -2270,7 +2295,9 @@
         bookmarks_file_label: "Fichier HTML ou JSON",
         select_all_button: "Tout cocher",
         clear_all_button: "Tout decocher",
-        export_grid_button: "Exporter la grille",
+        export_section_title: "Export",
+        export_json_button: "Exporter en JSON",
+        export_html_button: "Exporter en HTML",
         cancel_button: "Annuler",
         import_button: "Importer",
         account_title: "Reglages du compte",
@@ -2325,6 +2352,9 @@
         grid_import_replace_confirm: "Importer ce JSON remplacera la grille existante. Continuer ?",
         grid_import_in_progress: "Import JSON...",
         grid_import_success: "Grille importee.",
+        export_select_one: "Coche au moins une tuile a exporter.",
+        export_empty: "Aucune tuile a exporter.",
+        export_saved: "Export pret.",
         image_importing: "Import de l'image...",
         image_imported: "Image importee.",
         image_upload_error: "Erreur upload : {message}",
@@ -2430,7 +2460,9 @@
         bookmarks_file_label: "HTML or JSON file",
         select_all_button: "Select all",
         clear_all_button: "Clear all",
-        export_grid_button: "Export grid",
+        export_section_title: "Export",
+        export_json_button: "Export as JSON",
+        export_html_button: "Export as HTML",
         cancel_button: "Cancel",
         import_button: "Import",
         account_title: "Account settings",
@@ -2485,6 +2517,9 @@
         grid_import_replace_confirm: "Importing this JSON will replace the existing grid. Continue?",
         grid_import_in_progress: "Importing JSON...",
         grid_import_success: "Grid imported.",
+        export_select_one: "Select at least one tile to export.",
+        export_empty: "No tile to export.",
+        export_saved: "Export ready.",
         image_importing: "Importing image...",
         image_imported: "Image imported.",
         image_upload_error: "Upload error: {message}",
@@ -2614,7 +2649,11 @@
       bookmarksFile: $("bookmarksFile"),
       bookmarksSelectAllBtn: $("bookmarksSelectAllBtn"),
       bookmarksClearBtn: $("bookmarksClearBtn"),
-      bookmarksExportBtn: $("bookmarksExportBtn"),
+      bookmarksExportSelectAllBtn: $("bookmarksExportSelectAllBtn"),
+      bookmarksExportClearBtn: $("bookmarksExportClearBtn"),
+      bookmarksExportJsonBtn: $("bookmarksExportJsonBtn"),
+      bookmarksExportHtmlBtn: $("bookmarksExportHtmlBtn"),
+      bookmarksExportList: $("bookmarksExportList"),
       bookmarksList: $("bookmarksList"),
       bookmarksStatus: $("bookmarksStatus"),
       bookmarksSizeBtn: $("bookmarksSizeBtn"),
@@ -2720,6 +2759,7 @@
       importedBookmarks: [],
       importedFileKind: null,
       importedGridData: null,
+      exportSelectedTileIds: new Set(),
       topbarVisible: true,
       topbarHideTimer: null,
       refreshingUploadImages: new Set()
@@ -2983,6 +3023,56 @@
       return state.importedBookmarks.filter(item => item.selected).length;
     }
 
+    function exportableTiles() {
+      return getOrderedTiles().filter(tile => normalizeUrl(tile.url));
+    }
+
+    function ensureExportSelection() {
+      const exportableIds = new Set(exportableTiles().map(tile => String(tile.id)));
+      state.exportSelectedTileIds = new Set(
+        [...state.exportSelectedTileIds].filter(id => exportableIds.has(id))
+      );
+      if (!state.exportSelectedTileIds.size) {
+        state.exportSelectedTileIds = new Set(exportableIds);
+      }
+    }
+
+    function renderExportTiles() {
+      ensureExportSelection();
+      ui.bookmarksExportList.innerHTML = "";
+      const tiles = exportableTiles();
+
+      if (!tiles.length) {
+        ui.bookmarksExportList.classList.add("hidden");
+        setStatus(ui.bookmarksStatus, t("export_empty"), "error");
+        return;
+      }
+
+      ui.bookmarksExportList.classList.remove("hidden");
+      tiles.forEach(tile => {
+        const id = String(tile.id);
+        const row = document.createElement("label");
+        row.className = "bookmark-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = state.exportSelectedTileIds.has(id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            state.exportSelectedTileIds.add(id);
+          } else {
+            state.exportSelectedTileIds.delete(id);
+          }
+        });
+
+        const text = document.createElement("div");
+        text.innerHTML = `<strong>${escapeHtml(tile.title || tile.url || "Sans titre")}</strong><div class="bookmark-url">${escapeHtml(normalizeUrl(tile.url))}</div>`;
+        row.appendChild(checkbox);
+        row.appendChild(text);
+        ui.bookmarksExportList.appendChild(row);
+      });
+    }
+
     function renderImportFileState() {
       const isGridImport = state.importedFileKind === "grid" && state.importedGridData;
       ui.bookmarksSizeBtn.classList.toggle("hidden", Boolean(isGridImport));
@@ -3048,6 +3138,7 @@
       setStatus(ui.bookmarksStatus, "");
       ui.bookmarksModal.classList.add("open");
       bringOverlayToFront(ui.bookmarksModal);
+      renderExportTiles();
     }
 
     function closeBookmarksModal() {
@@ -3192,38 +3283,95 @@
       };
     }
 
-    function exportGridJson() {
+    function exportDateStamp() {
       const now = new Date();
       const pad = value => String(value).padStart(2, "0");
-      const filenameDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    }
+
+    function downloadTextFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+    }
+
+    function exportedTiles() {
+      return [...state.tiles]
+        .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
+        .map(tile => ({
+          position: Number(tile.position) || 0,
+          title: tile.title || "",
+          url: tile.url || "",
+          color: tile.color || "#ffffff",
+          image: tile.image || null,
+          show_title: tile.show_title !== false,
+          open_new_tab: tile.open_new_tab !== false
+        }));
+    }
+
+    function exportGridJson() {
+      const now = new Date();
       const payload = {
         app: "Alkoda StartPage",
         type: "grid-export",
         version: 1,
         exportedAt: now.toISOString(),
         config: JSON.parse(JSON.stringify(state.config)),
-        tiles: [...state.tiles]
-          .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
-          .map(tile => ({
-            position: Number(tile.position) || 0,
-            title: tile.title || "",
-            url: tile.url || "",
-            color: tile.color || "#ffffff",
-            image: tile.image || null,
-            show_title: tile.show_title !== false,
-            open_new_tab: tile.open_new_tab !== false
-          }))
+        tiles: exportedTiles()
       };
 
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `alkoda-startpage-grid-${filenameDate}.json`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+      downloadTextFile(
+        `alkoda-startpage-grid-${exportDateStamp()}.json`,
+        JSON.stringify(payload, null, 2),
+        "application/json;charset=utf-8"
+      );
+    }
+
+    function exportBookmarksHtml() {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const bookmarkItems = exportedTiles()
+        .filter(tile => normalizeUrl(tile.url))
+        .map(tile => {
+          const imageData = parseTileImageData(tile.image);
+          const attrs = [
+            `HREF="${escapeHtml(normalizeUrl(tile.url))}"`,
+            `ADD_DATE="${timestamp}"`,
+            `DATA-POSITION="${escapeHtml(tile.position)}"`,
+            `DATA-COLOR="${escapeHtml(tile.color)}"`
+          ];
+          if (imageData.src) {
+            attrs.push(`ICON="${escapeHtml(imageData.src)}"`);
+          }
+          return `        <DT><A ${attrs.join(" ")}>${escapeHtml(tile.title || tile.url)}</A>`;
+        })
+        .join("\n");
+      const html = [
+        "<!DOCTYPE NETSCAPE-Bookmark-file-1>",
+        "<!-- This is an automatically generated file.",
+        "     It will be read and overwritten.",
+        "     DO NOT EDIT! -->",
+        '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+        "<TITLE>Bookmarks</TITLE>",
+        "<H1>Bookmarks</H1>",
+        "<DL><p>",
+        `    <DT><H3 ADD_DATE="${timestamp}" LAST_MODIFIED="${timestamp}">Alkoda StartPage</H3>`,
+        "    <DL><p>",
+        bookmarkItems,
+        "    </DL><p>",
+        "</DL><p>"
+      ].filter(line => line !== "").join("\n");
+
+      downloadTextFile(
+        `alkoda-startpage-bookmarks-${exportDateStamp()}.html`,
+        html,
+        "text/html;charset=utf-8"
+      );
     }
 
     function passwordEyeSvg(isVisible) {
@@ -5519,6 +5667,8 @@
       state.importedBookmarks = state.importedBookmarks.map(item => ({ ...item, selected: false }));
       renderImportedBookmarks();
     });
+    ui.bookmarksExportJsonBtn.addEventListener("click", exportGridJson);
+    ui.bookmarksExportHtmlBtn.addEventListener("click", exportBookmarksHtml);
     ui.bookmarksSizeBtn.addEventListener("click", () => {
       state.bookmarksImportSnapshot = true;
       openSizeModal();
