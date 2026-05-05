@@ -1082,6 +1082,33 @@
       margin-top: 2px;
     }
 
+    .export-tile-body {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .export-tile-thumb {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 5px;
+      object-fit: contain;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 2px;
+    }
+
+    .export-tile-name {
+      min-width: 0;
+      color: var(--text);
+      font-size: 0.94rem;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .bookmark-actions {
       display: flex;
       gap: 10px;
@@ -3079,8 +3106,11 @@
           }
         });
 
+        const imageData = parseTileImageData(tile.image);
+        const thumbSrc = imageData.enabled && imageData.src ? imageData.src : faviconFor(tile.url);
         const text = document.createElement("div");
-        text.innerHTML = `<strong>${escapeHtml(tile.title || tile.url || "Sans titre")}</strong><div class="bookmark-url">${escapeHtml(normalizeUrl(tile.url))}</div>`;
+        text.className = "export-tile-body";
+        text.innerHTML = `<img class="export-tile-thumb" src="${escapeHtml(thumbSrc)}" alt=""><span class="export-tile-name">${escapeHtml(tile.title || tile.url || "Sans titre")}</span>`;
         row.appendChild(checkbox);
         row.appendChild(text);
         ui.bookmarksExportList.appendChild(row);
