@@ -2721,7 +2721,8 @@
       importedFileKind: null,
       importedGridData: null,
       topbarVisible: true,
-      topbarHideTimer: null
+      topbarHideTimer: null,
+      refreshingUploadImages: new Set()
     };
 
     function availableTilesText(count) {
@@ -3241,7 +3242,7 @@
 
     async function hydrateBackgroundConfig(rawBackground) {
       const background = sanitizeBackgroundConfig(rawBackground);
-      if (background.mode === "image" && background.storagePath) {
+      if (background.mode === "image" && background.storagePath && !background.src) {
         try {
           background.src = await signedUploadUrl(background.storagePath);
         } catch {
@@ -3754,11 +3755,22 @@
 
     async function hydrateUploadImage(rawImage) {
       const imageData = parseTileImageData(rawImage);
+      if (imageData.mode !== "upload" || !imageData.storagePath || imageData.src) {
+        return rawImage;
+      }
+      return refreshUploadImage(rawImage);
+    }
+
+    async function refreshUploadImage(rawImage) {
+      const imageData = parseTileImageData(rawImage);
       if (imageData.mode !== "upload" || !imageData.storagePath) {
         return rawImage;
       }
       try {
         const signedUrl = await signedUploadUrl(imageData.storagePath);
+        if (!signedUrl) {
+          return rawImage;
+        }
         return serializeTileImageData({
           src: signedUrl,
           storagePath: imageData.storagePath,
@@ -3770,6 +3782,46 @@
         });
       } catch {
         return rawImage;
+      }
+    }
+
+    async function refreshTileUploadImage(tileId) {
+      if (!tileId || state.refreshingUploadImages.has(tileId)) {
+        return;
+      }
+      const tile = state.tiles.find(item => item.id === tileId);
+      const imageData = parseTileImageData(tile?.image);
+      if (imageData.mode !== "upload" || !imageData.storagePath) {
+        return;
+      }
+
+      state.refreshingUploadImages.add(tileId);
+      try {
+        const refreshedImage = await refreshUploadImage(tile.image);
+        const refreshedImageData = parseTileImageData(refreshedImage);
+        if (!refreshedImageData.src || refreshedImageData.src === imageData.src) {
+          return;
+        }
+
+        const currentTile = state.tiles.find(item => item.id === tileId);
+        const currentImageData = parseTileImageData(currentTile?.image);
+        if (currentImageData.storagePath !== imageData.storagePath) {
+          return;
+        }
+
+        state.tiles = state.tiles.map(item => (
+          item.id === tileId ? { ...item, image: refreshedImage } : item
+        ));
+        renderTiles();
+
+        restTableRequest("tiles", {
+          method: "PATCH",
+          query: `?id=eq.${encodeURIComponent(tileId)}`,
+          body: { image: refreshedImage },
+          prefer: "return=minimal"
+        }).catch(() => {});
+      } finally {
+        state.refreshingUploadImages.delete(tileId);
       }
     }
 
@@ -4029,7 +4081,13 @@
       }
 
       if (hasImage) {
-        media.innerHTML = `<img src="${escapeHtml(imageData.src)}" alt="${escapeHtml(tile.title || "")}">`;
+        const img = document.createElement("img");
+        img.src = imageData.src;
+        img.alt = tile.title || "";
+        if (imageData.mode === "upload" && imageData.storagePath && tile.id) {
+          img.addEventListener("error", () => refreshTileUploadImage(tile.id), { once: true });
+        }
+        media.appendChild(img);
       } else if (!tile.show_title) {
         media.innerHTML = `<div class="tile-text">${escapeHtml(tile.title || "Sans titre")}</div>`;
       }
@@ -4945,36 +5003,13 @@
         state.currentWebmix = webmix;
         state.config = parseWebmixRow(webmix);
         const originalBackground = sanitizeBackgroundConfig(webmix.background);
-        state.config.background = await hydrateBackgroundConfig(webmix.background);
+        state.config.background = originalBackground;
         applyGridConfig(state.config);
 
-        const repairedUploadImages = [];
-        const contentRows = await Promise.all(
-          rows
-            .map(async (row, index) => {
-              const originalImageData = parseTileImageData(row.image);
-              const hydratedImage = await hydrateUploadImage(row.image);
-              const hydratedImageData = parseTileImageData(hydratedImage);
-
-              if (
-                originalImageData.mode === "upload" &&
-                originalImageData.storagePath &&
-                !originalImageData.src &&
-                hydratedImageData.src
-              ) {
-                repairedUploadImages.push({
-                  id: row.id,
-                  image: hydratedImage
-                });
-              }
-
-              return {
-                ...row,
-                image: hydratedImage,
-                position: Number(row.position) || index + 1
-              };
-            })
-        );
+        const contentRows = rows.map((row, index) => ({
+          ...row,
+          position: Number(row.position) || index + 1
+        }));
 
         state.tiles = contentRows;
 
@@ -4983,39 +5018,74 @@
         if (
           originalBackground.mode === "image" &&
           originalBackground.storagePath &&
-          !originalBackground.src &&
-          state.config.background.src
+          !originalBackground.src
         ) {
-          Promise.resolve(
-            restTableRequest("webmixes", {
-              method: "PATCH",
-              query: `?id=eq.${encodeURIComponent(webmix.id)}`,
-              body: {
-                background: {
-                  mode: state.config.background.mode,
-                  color: state.config.background.color,
-                  storagePath: state.config.background.storagePath,
-                  src: state.config.background.src,
-                  stretchWidth: Boolean(state.config.background.stretchWidth),
-                  offsetY: state.config.background.offsetY
-                }
-              },
-              prefer: "return=minimal"
+          hydrateBackgroundConfig(webmix.background)
+            .then(hydratedBackground => {
+              if (state.currentWebmix?.id !== webmix.id || !hydratedBackground.src) {
+                return;
+              }
+              state.config.background = hydratedBackground;
+              applyGridBackground(hydratedBackground);
+              return restTableRequest("webmixes", {
+                method: "PATCH",
+                query: `?id=eq.${encodeURIComponent(webmix.id)}`,
+                body: {
+                  background: {
+                    mode: hydratedBackground.mode,
+                    color: hydratedBackground.color,
+                    storagePath: hydratedBackground.storagePath,
+                    src: hydratedBackground.src,
+                    stretchWidth: Boolean(hydratedBackground.stretchWidth),
+                    offsetY: hydratedBackground.offsetY
+                  }
+                },
+                prefer: "return=minimal"
+              });
             })
-          ).catch(() => {});
+            .catch(() => {});
         }
 
-        if (repairedUploadImages.length) {
+        const rowsNeedingHydration = contentRows.filter(row => {
+          const imageData = parseTileImageData(row.image);
+          return imageData.mode === "upload" && imageData.storagePath && !imageData.src;
+        });
+
+        if (rowsNeedingHydration.length) {
           Promise.allSettled(
-            repairedUploadImages.map(item =>
-              restTableRequest("tiles", {
-                method: "PATCH",
-                query: `?id=eq.${encodeURIComponent(item.id)}`,
-                body: { image: item.image },
-                prefer: "return=minimal"
-              })
-            )
-          ).catch(() => {});
+            rowsNeedingHydration.map(async row => {
+              const hydratedImage = await hydrateUploadImage(row.image);
+              const hydratedImageData = parseTileImageData(hydratedImage);
+              return hydratedImageData.src ? { id: row.id, image: hydratedImage } : null;
+            })
+          )
+            .then(results => {
+              if (state.currentWebmix?.id !== webmix.id) {
+                return;
+              }
+              const repairedUploadImages = results
+                .filter(result => result.status === "fulfilled" && result.value)
+                .map(result => result.value);
+              if (!repairedUploadImages.length) {
+                return;
+              }
+
+              const imagesById = new Map(repairedUploadImages.map(item => [item.id, item.image]));
+              state.tiles = state.tiles.map(tile => (
+                imagesById.has(tile.id) ? { ...tile, image: imagesById.get(tile.id) } : tile
+              ));
+              renderTiles();
+
+              return Promise.allSettled(repairedUploadImages.map(item =>
+                restTableRequest("tiles", {
+                  method: "PATCH",
+                  query: `?id=eq.${encodeURIComponent(item.id)}`,
+                  body: { image: item.image },
+                  prefer: "return=minimal"
+                })
+              ));
+            })
+            .catch(() => {});
         }
 
         if (!contentRows.length) {
