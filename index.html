@@ -2725,6 +2725,15 @@
       refreshingUploadImages: new Set()
     };
 
+    let winZCounter = 120;
+
+    function bringOverlayToFront(overlay) {
+      if (!overlay) {
+        return;
+      }
+      overlay.style.zIndex = ++winZCounter;
+    }
+
     function availableTilesText(count) {
       return t(count === 1 ? "bookmarks_available_one" : "bookmarks_available_many", { count });
     }
@@ -3038,6 +3047,7 @@
       updateBookmarksAvailability();
       setStatus(ui.bookmarksStatus, "");
       ui.bookmarksModal.classList.add("open");
+      bringOverlayToFront(ui.bookmarksModal);
     }
 
     function closeBookmarksModal() {
@@ -4394,6 +4404,7 @@
       state.draftConfig = { ...state.config };
       syncSizeInputs(state.draftConfig);
       ui.sizeModal.classList.add("open");
+      bringOverlayToFront(ui.sizeModal);
     }
 
     function applyDraftConfigFromInputs() {
@@ -5858,10 +5869,9 @@
       document.addEventListener("touchend", pointerUp);
     }
 
-    let winZCounter = 100;
     document.querySelectorAll(".overlay > .card").forEach(card => {
       card.addEventListener("mousedown", () => {
-        card.closest(".overlay").style.zIndex = ++winZCounter;
+        bringOverlayToFront(card.closest(".overlay"));
       }, true);
     });
 
