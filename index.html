@@ -452,11 +452,15 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      transition: box-shadow 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+      transition: box-shadow 0.14s ease, opacity 0.14s ease;
     }
 
     /* Hover zoom for tiles. Remove this block and the transform transition above to revert. */
-    .tile:not(.empty):not(.dragging):hover {
+    .webmix > .tile {
+      transition: box-shadow 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+    }
+
+    .webmix > .tile:not(.empty):not(.dragging):hover {
       z-index: 3;
       transform: scale(1.05);
     }
