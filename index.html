@@ -4818,6 +4818,15 @@
       applyGridConfig(state.config);
       renderTiles();
 
+      // Mettre en cache la nouvelle config
+      try {
+        localStorage.setItem("alkoda_grid_config", JSON.stringify({
+          columns: state.config.columns,
+          rows: state.config.rows,
+          tileSize: state.config.tileSize
+        }));
+      } catch { /* storage plein ou désactivé, on ignore */ }
+
       setStatus(ui.sizeStatus, t("save_in_progress"));
       ui.saveSizeBtn.disabled = true;
 
@@ -5298,6 +5307,15 @@
         state.config.background = originalBackground;
         applyGridConfig(state.config);
 
+        // Mettre en cache la config pour le prochain chargement
+        try {
+          localStorage.setItem("alkoda_grid_config", JSON.stringify({
+            columns: state.config.columns,
+            rows: state.config.rows,
+            tileSize: state.config.tileSize
+          }));
+        } catch { /* storage plein ou désactivé, on ignore */ }
+
         const contentRows = rows.map((row, index) => ({
           ...row,
           position: Number(row.position) || index + 1
@@ -5656,6 +5674,16 @@
 
       updateLayoutMetrics();
       refreshEditWebmixButton();
+
+      // Appliquer immédiatement la config mise en cache (avant Supabase)
+      try {
+        const cached = localStorage.getItem("alkoda_grid_config");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          state.config = sanitizeConfig({ ...DEFAULT_CONFIG, ...parsed });
+        }
+      } catch { /* cache invalide, on ignore */ }
+
       syncSizeInputs(state.config);
       applyGridConfig(state.config);
       renderTiles();
