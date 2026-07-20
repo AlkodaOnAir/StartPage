@@ -1957,7 +1957,7 @@
       <img id="gridBackgroundImage" class="grid-background-image hidden" alt="" />
       <div id="debugBox" class="debug-box"></div>
       <div class="webmix-wrap">
-        <section id="webmix" class="webmix" aria-label="Grille" data-i18n-aria-label="webmix_aria"></section>
+        <section id="webmix" class="webmix tiles-loading" aria-label="Grille" data-i18n-aria-label="webmix_aria"></section>
       </div>
     </main>
   </div>
@@ -5699,7 +5699,6 @@
 
       syncSizeInputs(state.config);
       applyGridConfig(state.config);
-      ui.webmix?.classList.add("tiles-loading");
       renderTiles();
 
       try {
