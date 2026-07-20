@@ -5323,6 +5323,11 @@
 
         state.tiles = contentRows;
 
+        // Mettre en cache les tuiles pour le prochain chargement
+        try {
+          localStorage.setItem(`alkoda_tiles_${state.currentUserId}`, JSON.stringify(contentRows));
+        } catch { /* storage plein ou désactivé, on ignore */ }
+
         renderTiles();
 
         if (
@@ -5701,6 +5706,16 @@
           refreshAccountView();
           closeSignUpScreen();
           ui.loginScreen.classList.remove("open");
+
+          // Afficher les tuiles en cache immédiatement pendant que Supabase charge
+          try {
+            const cachedTiles = localStorage.getItem(`alkoda_tiles_${state.currentUserId}`);
+            if (cachedTiles) {
+              state.tiles = JSON.parse(cachedTiles);
+              renderTiles();
+            }
+          } catch { /* cache invalide, on ignore */ }
+
           await loadTiles();
           scheduleTopbarHide(2000);
         } else {
