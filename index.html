@@ -455,6 +455,14 @@
       transition: box-shadow 0.14s ease, opacity 0.14s ease;
     }
 
+    .webmix.tiles-loading {
+      pointer-events: none;
+    }
+
+    .webmix.tiles-loading .tile.empty {
+      visibility: hidden;
+    }
+
     /* Hover zoom for tiles. Remove this block and the transform transition above to revert. */
     .webmix > .tile {
       transition: box-shadow 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
@@ -5691,6 +5699,7 @@
 
       syncSizeInputs(state.config);
       applyGridConfig(state.config);
+      ui.webmix?.classList.add("tiles-loading");
       renderTiles();
 
       try {
@@ -5713,10 +5722,12 @@
             if (cachedTiles) {
               state.tiles = JSON.parse(cachedTiles);
               renderTiles();
+              ui.webmix?.classList.remove("tiles-loading");
             }
           } catch { /* cache invalide, on ignore */ }
 
           await loadTiles();
+          ui.webmix?.classList.remove("tiles-loading");
           scheduleTopbarHide(2000);
         } else {
           state.currentSession = null;
@@ -5724,6 +5735,7 @@
           state.currentWebmix = null;
           state.editMode = false;
           refreshAccountView();
+          ui.webmix?.classList.remove("tiles-loading");
           ui.loginScreen.classList.add("open");
           clearTopbarHideTimer();
           setTopbarVisible(true);
