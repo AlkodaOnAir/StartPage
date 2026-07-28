@@ -2083,6 +2083,42 @@
     </div>
   </div>
 
+  <div id="passwordRecoveryModal" class="overlay">
+    <div class="card size-card">
+      <div class="win-titlebar">
+        <h2 data-i18n="password_recovery_title">Nouveau mot de passe</h2>
+        <button id="closePasswordRecoveryModalBtn" class="modal-close" type="button" aria-label="Fermer">×</button>
+      </div>
+      <div class="field">
+        <label for="recoveryPassword" data-i18n="signup_password_label">Mot de passe a creer</label>
+        <div class="password-field">
+          <input id="recoveryPassword" type="password" autocomplete="new-password" placeholder="Minimum 8 caracteres" data-i18n-placeholder="signup_password_placeholder" />
+          <button id="recoveryPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer le mot de passe" data-i18n-aria-label="password_hold_to_show">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="recoveryPasswordConfirm" data-i18n="signup_password_confirm_label">Confirmer le mot de passe</label>
+        <div class="password-field">
+          <input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" data-i18n-placeholder="signup_password_confirm_placeholder" />
+          <button id="recoveryPasswordConfirmToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer la confirmation du mot de passe" data-i18n-aria-label="password_hold_to_show">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="passwordRecoveryStatus" class="status"></div>
+      <div class="modal-actions">
+        <button id="cancelPasswordRecoveryBtn" class="btn" type="button" data-i18n="cancel_button">Annuler</button>
+        <button id="savePasswordRecoveryBtn" class="btn primary" type="button" data-i18n="save_password_button">Enregistrer le mot de passe</button>
+      </div>
+    </div>
+  </div>
+
   <div id="sizeModal" class="overlay">
     <div class="card size-card">
       <div class="win-titlebar">
@@ -2269,6 +2305,7 @@
   <script>
     const SUPABASE_URL = "https://ejblebseqggezptuvqfj.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5JCL-teaTWmLPfDM5UrRoQ_xTFm4yrb";
+    const APP_URL = "https://start.alkoda-onair.com";
     const DEFAULT_BACKGROUND = { mode: "color", color: "#060606", src: "", storagePath: "", stretchWidth: false, offsetY: 50 };
     const DEFAULT_CONFIG = { columns: 11, rows: 5, tileSize: 86, background: { ...DEFAULT_BACKGROUND } };
     const TILE_LIMITS = { columns: [1, 30], rows: [1, 30], tileSize: [50, 150] };
@@ -2465,6 +2502,11 @@
         account_email_missing: "Email du compte introuvable.",
         account_password_reset_sending: "Envoi de l'email de modification...",
         account_password_reset_sent: "Email envoye pour modifier le mot de passe.",
+        password_recovery_title: "Nouveau mot de passe",
+        save_password_button: "Enregistrer le mot de passe",
+        password_update_in_progress: "Modification du mot de passe...",
+        password_update_success: "Mot de passe modifie.",
+        password_recovery_cancel_confirm: "Quitter sans modifier le mot de passe ?",
         webmix_not_found: "Grille introuvable.",
         clear_webmix_confirm_1: "Vider la grille va supprimer toutes les tuiles actuelles. Continuer ?",
         clear_webmix_confirm_2: "Confirmation finale : toutes les tuiles de cette grille seront effacees. Voulez-vous vraiment continuer ?",
@@ -2631,6 +2673,11 @@
         account_email_missing: "Account email not found.",
         account_password_reset_sending: "Sending password change email...",
         account_password_reset_sent: "Email sent to change the password.",
+        password_recovery_title: "New password",
+        save_password_button: "Save password",
+        password_update_in_progress: "Changing password...",
+        password_update_success: "Password changed.",
+        password_recovery_cancel_confirm: "Leave without changing the password?",
         webmix_not_found: "Grid not found.",
         clear_webmix_confirm_1: "Clearing the grid will delete all current tiles. Continue?",
         clear_webmix_confirm_2: "Final confirmation: all tiles in this grid will be erased. Do you really want to continue?",
@@ -2710,6 +2757,15 @@
       accountEmail: $("accountEmail"),
       accountStatus: $("accountStatus"),
       changePasswordBtn: $("changePasswordBtn"),
+      passwordRecoveryModal: $("passwordRecoveryModal"),
+      closePasswordRecoveryModalBtn: $("closePasswordRecoveryModalBtn"),
+      recoveryPassword: $("recoveryPassword"),
+      recoveryPasswordConfirm: $("recoveryPasswordConfirm"),
+      recoveryPasswordToggle: $("recoveryPasswordToggle"),
+      recoveryPasswordConfirmToggle: $("recoveryPasswordConfirmToggle"),
+      passwordRecoveryStatus: $("passwordRecoveryStatus"),
+      cancelPasswordRecoveryBtn: $("cancelPasswordRecoveryBtn"),
+      savePasswordRecoveryBtn: $("savePasswordRecoveryBtn"),
       clearWebmixBtn: $("clearWebmixBtn"),
       cancelAccountBtn: $("cancelAccountBtn"),
       deleteAccountBtn: $("deleteAccountBtn"),
@@ -2823,6 +2879,7 @@
       webImageScale: 90,
       uploadImageScale: 90,
       editMode: false,
+      passwordRecoveryActive: false,
       tileColorTransparent: false,
       draggingTileId: null,
       saveTileCloseTimer: null,
@@ -3071,6 +3128,53 @@
       ui.accountModal.classList.remove("open");
       setStatus(ui.accountStatus, "");
       scheduleTopbarHide(120);
+    }
+
+    function openPasswordRecoveryModal() {
+      state.passwordRecoveryActive = true;
+      clearTopbarHideTimer();
+      setTopbarVisible(true);
+      closeAccountModal();
+      ui.loginScreen.classList.remove("open");
+      ui.recoveryPassword.value = "";
+      ui.recoveryPasswordConfirm.value = "";
+      setStatus(ui.passwordRecoveryStatus, "");
+      ui.passwordRecoveryModal.classList.add("open");
+      bringOverlayToFront(ui.passwordRecoveryModal);
+      window.setTimeout(() => ui.recoveryPassword.focus(), 30);
+    }
+
+    function closePasswordRecoveryModal(confirmClose = false) {
+      if (confirmClose && state.passwordRecoveryActive && !window.confirm(t("password_recovery_cancel_confirm"))) {
+        return;
+      }
+      state.passwordRecoveryActive = false;
+      ui.passwordRecoveryModal.classList.remove("open");
+      ui.recoveryPassword.value = "";
+      ui.recoveryPasswordConfirm.value = "";
+      setStatus(ui.passwordRecoveryStatus, "");
+      scheduleTopbarHide(120);
+    }
+
+    async function cancelPasswordRecovery() {
+      if (state.passwordRecoveryActive && !window.confirm(t("password_recovery_cancel_confirm"))) {
+        return;
+      }
+      closePasswordRecoveryModal(false);
+      clearAuthRedirectUrl();
+      await sbClient.auth.signOut();
+    }
+
+    function isPasswordRecoveryUrl() {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const query = new URLSearchParams(window.location.search);
+      return hash.get("type") === "recovery" || query.get("type") === "recovery";
+    }
+
+    function clearAuthRedirectUrl() {
+      if (window.location.hash || window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
 
     function emptyTileCount() {
@@ -5443,7 +5547,7 @@
         const { error } = await sbClient.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: "https://start.alkoda-onair.com"
+            redirectTo: APP_URL
           }
         });
         if (error) throw error;
@@ -5514,7 +5618,7 @@
           email,
           password,
           options: {
-            emailRedirectTo: window.location.href
+            emailRedirectTo: APP_URL
           }
         });
         if (error) {
@@ -5546,7 +5650,7 @@
 
       try {
         const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.href
+          redirectTo: APP_URL
         });
         if (error) {
           throw error;
@@ -5617,7 +5721,7 @@
 
       try {
         const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.href
+          redirectTo: APP_URL
         });
         if (error) {
           throw error;
@@ -5627,6 +5731,51 @@
         setStatus(ui.accountStatus, error.message || t("send_error"), "error");
       } finally {
         ui.changePasswordBtn.disabled = false;
+      }
+    }
+
+    async function saveRecoveredPassword() {
+      const password = ui.recoveryPassword.value;
+      const passwordConfirm = ui.recoveryPasswordConfirm.value;
+
+      if (!password || password.length < 8) {
+        setStatus(ui.passwordRecoveryStatus, t("password_min_error"), "error");
+        return;
+      }
+
+      if (!/[A-Z]/.test(password)) {
+        setStatus(ui.passwordRecoveryStatus, t("password_upper_error"), "error");
+        return;
+      }
+
+      if (!/[^A-Za-z0-9]/.test(password)) {
+        setStatus(ui.passwordRecoveryStatus, t("password_symbol_error"), "error");
+        return;
+      }
+
+      if (password !== passwordConfirm) {
+        setStatus(ui.passwordRecoveryStatus, t("password_confirm_error"), "error");
+        return;
+      }
+
+      setStatus(ui.passwordRecoveryStatus, t("password_update_in_progress"));
+      ui.savePasswordRecoveryBtn.disabled = true;
+      ui.cancelPasswordRecoveryBtn.disabled = true;
+
+      try {
+        const { error } = await sbClient.auth.updateUser({ password });
+        if (error) {
+          throw error;
+        }
+        setStatus(ui.passwordRecoveryStatus, t("password_update_success"), "ok");
+        state.passwordRecoveryActive = false;
+        clearAuthRedirectUrl();
+        window.setTimeout(() => closePasswordRecoveryModal(false), 650);
+      } catch (error) {
+        setStatus(ui.passwordRecoveryStatus, error.message || t("save_error"), "error");
+      } finally {
+        ui.savePasswordRecoveryBtn.disabled = false;
+        ui.cancelPasswordRecoveryBtn.disabled = false;
       }
     }
 
@@ -5730,20 +5879,23 @@
           refreshAccountView();
           closeSignUpScreen();
           ui.loginScreen.classList.remove("open");
+          if (isPasswordRecoveryUrl()) {
+            openPasswordRecoveryModal();
+          } else {
+            // Afficher les tuiles en cache immédiatement pendant que Supabase charge
+            try {
+              const cachedTiles = localStorage.getItem(`alkoda_tiles_${state.currentUserId}`);
+              if (cachedTiles) {
+                state.tiles = JSON.parse(cachedTiles);
+                renderTiles();
+                ui.webmix?.classList.remove("tiles-loading");
+              }
+            } catch { /* cache invalide, on ignore */ }
 
-          // Afficher les tuiles en cache immédiatement pendant que Supabase charge
-          try {
-            const cachedTiles = localStorage.getItem(`alkoda_tiles_${state.currentUserId}`);
-            if (cachedTiles) {
-              state.tiles = JSON.parse(cachedTiles);
-              renderTiles();
-              ui.webmix?.classList.remove("tiles-loading");
-            }
-          } catch { /* cache invalide, on ignore */ }
-
-          await loadTiles();
-          ui.webmix?.classList.remove("tiles-loading");
-          scheduleTopbarHide(2000);
+            await loadTiles();
+            ui.webmix?.classList.remove("tiles-loading");
+            scheduleTopbarHide(2000);
+          }
         } else {
           state.currentSession = null;
           state.currentUserId = "";
@@ -5756,7 +5908,7 @@
           setTopbarVisible(true);
         }
 
-        sbClient.auth.onAuthStateChange(async (_event, session) => {
+        sbClient.auth.onAuthStateChange(async (event, session) => {
           if (session) {
             state.currentSession = session;
             state.currentUserId = session.user?.id || "";
@@ -5764,6 +5916,10 @@
             refreshAccountView();
             closeSignUpScreen();
             ui.loginScreen.classList.remove("open");
+            if (event === "PASSWORD_RECOVERY") {
+              openPasswordRecoveryModal();
+              return;
+            }
             await loadTiles();
             scheduleTopbarHide(2000);
           } else {
@@ -5812,6 +5968,9 @@
     ui.signupBtn.addEventListener("click", openSignUpScreen);
     ui.signupSubmitBtn.addEventListener("click", signUp);
     ui.signupBackBtn.addEventListener("click", closeSignUpScreen);
+    ui.savePasswordRecoveryBtn.addEventListener("click", saveRecoveredPassword);
+    ui.cancelPasswordRecoveryBtn.addEventListener("click", cancelPasswordRecovery);
+    ui.closePasswordRecoveryModalBtn.addEventListener("click", cancelPasswordRecovery);
     ui.editWebmixBtn.addEventListener("click", () => {
       setEditMode(!state.editMode);
     });
@@ -5822,10 +5981,16 @@
     ui.signupPasswordToggle.dataset.visible = "false";
     ui.signupPasswordConfirmToggle.innerHTML = passwordEyeSvg(false);
     ui.signupPasswordConfirmToggle.dataset.visible = "false";
+    ui.recoveryPasswordToggle.innerHTML = passwordEyeSvg(false);
+    ui.recoveryPasswordToggle.dataset.visible = "false";
+    ui.recoveryPasswordConfirmToggle.innerHTML = passwordEyeSvg(false);
+    ui.recoveryPasswordConfirmToggle.dataset.visible = "false";
     [
       [ui.loginPassword, ui.loginPasswordToggle],
       [ui.signupPassword, ui.signupPasswordToggle],
-      [ui.signupPasswordConfirm, ui.signupPasswordConfirmToggle]
+      [ui.signupPasswordConfirm, ui.signupPasswordConfirmToggle],
+      [ui.recoveryPassword, ui.recoveryPasswordToggle],
+      [ui.recoveryPasswordConfirm, ui.recoveryPasswordConfirmToggle]
     ].forEach(([input, button]) => {
       button.addEventListener("mousedown", event => {
         event.preventDefault();
@@ -6187,6 +6352,11 @@
         signUp();
       }
     });
+    ui.recoveryPasswordConfirm.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        saveRecoveredPassword();
+      }
+    });
 
     function makeDraggable(titlebar) {
       const card = titlebar.closest(".card");
@@ -6263,6 +6433,12 @@
     ui.accountModal.addEventListener("click", event => {
       if (event.target === ui.accountModal) {
         closeAccountModal();
+      }
+    });
+
+    ui.passwordRecoveryModal.addEventListener("click", event => {
+      if (event.target === ui.passwordRecoveryModal) {
+        cancelPasswordRecovery();
       }
     });
 
