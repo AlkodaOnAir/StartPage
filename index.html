@@ -689,18 +689,21 @@
     }
 
     .tile-card {
+      --tile-modal-scale: 1;
       width: min(860px, 100%);
-      max-height: min(92vh, 860px);
-      overflow: hidden;
+      max-height: none;
+      overflow: visible;
       padding: 16px 18px 18px;
       display: grid;
-      grid-template-rows: auto auto auto auto auto;
+      grid-template-rows: auto auto auto auto;
       gap: 6px;
+      transform: translate(-50%, -50%) scale(var(--tile-modal-scale));
+      transform-origin: center;
     }
 
     .tile-card-content {
       min-height: 0;
-      overflow: auto;
+      overflow: visible;
       padding-right: 4px;
       padding-bottom: 4px;
     }
@@ -1659,6 +1662,24 @@
       width: min(460px, 100%);
     }
 
+    @media (max-height: 760px) and (min-width: 861px) {
+      .tile-card {
+        --tile-modal-scale: 0.92;
+      }
+    }
+
+    @media (max-height: 680px) and (min-width: 861px) {
+      .tile-card {
+        --tile-modal-scale: 0.84;
+      }
+    }
+
+    @media (max-height: 600px) and (min-width: 861px) {
+      .tile-card {
+        --tile-modal-scale: 0.76;
+      }
+    }
+
     @media (max-width: 860px) {
       .topbar {
         flex-direction: column;
@@ -1697,10 +1718,6 @@
       .grid-2,
       .mode-list {
         grid-template-columns: 1fr;
-      }
-
-      .tile-card {
-        max-height: min(92vh, 860px);
       }
 
       .tile-card-top {
