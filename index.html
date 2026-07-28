@@ -990,6 +990,15 @@
       background: rgba(255, 255, 255, 0.04);
     }
 
+    .credential-username {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      clip-path: inset(50%);
+    }
+
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1861,65 +1870,69 @@
           <span data-i18n="google_login_button">Continuer avec Google</span>
         </button>
         <div class="auth-divider"><span data-i18n="auth_or_divider">ou</span></div>
-        <div class="field">
-          <label for="loginEmail" data-i18n="email_label">Email</label>
-          <input id="loginEmail" type="email" autocomplete="email" placeholder="ton@email.com" data-i18n-placeholder="login_email_placeholder" />
-        </div>
-        <div class="field">
-          <label for="loginPassword" data-i18n="password_label">Mot de passe</label>
-          <div class="password-field">
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Mot de passe" data-i18n-placeholder="login_password_placeholder" />
-            <button id="loginPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher le mot de passe" data-i18n-aria-label="password_hold_to_show">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m2.71 3.72 17.57 17.57-1.41 1.41-3.02-3.02A11.84 11.84 0 0 1 12 19c-5.23 0-9.27-3.11-11-7a12.48 12.48 0 0 1 4.29-4.95L1.29 5.13l1.42-1.41ZM7 8.76A9.74 9.74 0 0 0 3.2 12c1.63 2.88 4.82 5 8.8 5 .93 0 1.81-.11 2.63-.32l-2.06-2.06A3.5 3.5 0 0 1 9.38 11.43L7 8.76Zm5-3.76c5.23 0 9.27 3.11 11 7a12.39 12.39 0 0 1-3.45 4.31l-1.44-1.44A9.87 9.87 0 0 0 20.8 12c-1.63-2.88-4.82-5-8.8-5-1.36 0-2.63.25-3.77.7L6.68 6.15A11.92 11.92 0 0 1 12 5Zm-.46 3.52a3.5 3.5 0 0 1 3.94 3.94l-3.94-3.94Z"/>
-              </svg>
-            </button>
+        <form id="loginForm">
+          <div class="field">
+            <label for="loginEmail" data-i18n="email_label">Email</label>
+            <input id="loginEmail" name="email" type="email" autocomplete="username email" placeholder="ton@email.com" data-i18n-placeholder="login_email_placeholder" />
           </div>
-        </div>
-        <div class="auth-actions">
-          <div class="auth-main-actions">
-            <button id="loginBtn" class="btn primary" type="button" data-i18n="login_button">Login</button>
-            <button id="signupBtn" class="btn" type="button" data-i18n="signup_open_button">Creer un compte</button>
+          <div class="field">
+            <label for="loginPassword" data-i18n="password_label">Mot de passe</label>
+            <div class="password-field">
+              <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Mot de passe" data-i18n-placeholder="login_password_placeholder" />
+              <button id="loginPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher le mot de passe" data-i18n-aria-label="password_hold_to_show">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m2.71 3.72 17.57 17.57-1.41 1.41-3.02-3.02A11.84 11.84 0 0 1 12 19c-5.23 0-9.27-3.11-11-7a12.48 12.48 0 0 1 4.29-4.95L1.29 5.13l1.42-1.41ZM7 8.76A9.74 9.74 0 0 0 3.2 12c1.63 2.88 4.82 5 8.8 5 .93 0 1.81-.11 2.63-.32l-2.06-2.06A3.5 3.5 0 0 1 9.38 11.43L7 8.76Zm5-3.76c5.23 0 9.27 3.11 11 7a12.39 12.39 0 0 1-3.45 4.31l-1.44-1.44A9.87 9.87 0 0 0 20.8 12c-1.63-2.88-4.82-5-8.8-5-1.36 0-2.63.25-3.77.7L6.68 6.15A11.92 11.92 0 0 1 12 5Zm-.46 3.52a3.5 3.5 0 0 1 3.94 3.94l-3.94-3.94Z"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <button id="forgotBtn" class="btn text-btn" type="button" data-i18n="forgot_button">Mot de passe oublié</button>
-        </div>
+          <div class="auth-actions">
+            <div class="auth-main-actions">
+              <button id="loginBtn" class="btn primary" type="submit" data-i18n="login_button">Login</button>
+              <button id="signupBtn" class="btn" type="button" data-i18n="signup_open_button">Creer un compte</button>
+            </div>
+            <button id="forgotBtn" class="btn text-btn" type="button" data-i18n="forgot_button">Mot de passe oublié</button>
+          </div>
+        </form>
         <div id="loginStatus" class="status"></div>
       </div>
 
       <div id="signupCard" class="card hidden">
         <img class="login-logo" src="./alkoda-startpage.png" alt="Alkoda On Air StartPage" data-i18n-alt="brand_startpage_alt" />
         <h1 data-i18n="signup_title">Creer un compte</h1>
-        <div class="field">
-          <label for="signupEmail" data-i18n="signup_email_label">Nouvel email</label>
-          <input id="signupEmail" type="email" autocomplete="off" placeholder="nouveau@email.com" data-i18n-placeholder="signup_email_placeholder" />
-        </div>
-        <div class="field">
-          <label for="signupPassword" data-i18n="signup_password_label">Mot de passe a creer</label>
-          <div class="password-field">
-            <input id="signupPassword" type="password" autocomplete="new-password" placeholder="Minimum 8 caracteres" data-i18n-placeholder="signup_password_placeholder" />
-            <button id="signupPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer le mot de passe" data-i18n-aria-label="password_hold_to_show">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
-              </svg>
-            </button>
+        <form id="signupForm">
+          <div class="field">
+            <label for="signupEmail" data-i18n="signup_email_label">Nouvel email</label>
+            <input id="signupEmail" name="email" type="email" autocomplete="username email" placeholder="nouveau@email.com" data-i18n-placeholder="signup_email_placeholder" />
           </div>
-          <div class="field-note" data-i18n="signup_password_note">Minimum 8 caracteres, avec au moins une majuscule et un symbole.</div>
-        </div>
-        <div class="field">
-          <label for="signupPasswordConfirm" data-i18n="signup_password_confirm_label">Confirmer le mot de passe</label>
-          <div class="password-field">
-            <input id="signupPasswordConfirm" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" data-i18n-placeholder="signup_password_confirm_placeholder" />
-            <button id="signupPasswordConfirmToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer la confirmation du mot de passe" data-i18n-aria-label="password_hold_to_show">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
-              </svg>
-            </button>
+          <div class="field">
+            <label for="signupPassword" data-i18n="signup_password_label">Mot de passe a creer</label>
+            <div class="password-field">
+              <input id="signupPassword" name="new-password" type="password" autocomplete="new-password" placeholder="Minimum 8 caracteres" data-i18n-placeholder="signup_password_placeholder" />
+              <button id="signupPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer le mot de passe" data-i18n-aria-label="password_hold_to_show">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="field-note" data-i18n="signup_password_note">Minimum 8 caracteres, avec au moins une majuscule et un symbole.</div>
           </div>
-        </div>
-        <div class="modal-actions" style="justify-content:flex-start;margin-top:10px;">
-          <button id="signupSubmitBtn" class="btn primary" type="button" data-i18n="signup_submit_button">Creer le compte</button>
-          <button id="signupBackBtn" class="btn ghost" type="button" data-i18n="signup_back_button">Retour connexion</button>
-        </div>
+          <div class="field">
+            <label for="signupPasswordConfirm" data-i18n="signup_password_confirm_label">Confirmer le mot de passe</label>
+            <div class="password-field">
+              <input id="signupPasswordConfirm" name="new-password-confirm" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" data-i18n-placeholder="signup_password_confirm_placeholder" />
+              <button id="signupPasswordConfirmToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer la confirmation du mot de passe" data-i18n-aria-label="password_hold_to_show">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="modal-actions" style="justify-content:flex-start;margin-top:10px;">
+            <button id="signupSubmitBtn" class="btn primary" type="submit" data-i18n="signup_submit_button">Creer le compte</button>
+            <button id="signupBackBtn" class="btn ghost" type="button" data-i18n="signup_back_button">Retour connexion</button>
+          </div>
+        </form>
         <div id="signupStatus" class="status"></div>
       </div>
     </div>
@@ -2089,33 +2102,36 @@
         <h2 data-i18n="password_recovery_title">Nouveau mot de passe</h2>
         <button id="closePasswordRecoveryModalBtn" class="modal-close" type="button" aria-label="Fermer">×</button>
       </div>
-      <div class="field">
-        <label for="recoveryPassword" data-i18n="signup_password_label">Mot de passe a creer</label>
-        <div class="password-field">
-          <input id="recoveryPassword" type="password" autocomplete="new-password" placeholder="Minimum 8 caracteres" data-i18n-placeholder="signup_password_placeholder" />
-          <button id="recoveryPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer le mot de passe" data-i18n-aria-label="password_hold_to_show">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
-            </svg>
-          </button>
+      <form id="passwordRecoveryForm">
+        <input id="recoveryEmail" name="email" type="email" autocomplete="username email" class="credential-username" tabindex="-1" />
+        <div class="field">
+          <label for="recoveryPassword" data-i18n="signup_password_label">Mot de passe a creer</label>
+          <div class="password-field">
+            <input id="recoveryPassword" name="new-password" type="password" autocomplete="new-password" placeholder="Minimum 8 caracteres" data-i18n-placeholder="signup_password_placeholder" />
+            <button id="recoveryPasswordToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer le mot de passe" data-i18n-aria-label="password_hold_to_show">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label for="recoveryPasswordConfirm" data-i18n="signup_password_confirm_label">Confirmer le mot de passe</label>
-        <div class="password-field">
-          <input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" data-i18n-placeholder="signup_password_confirm_placeholder" />
-          <button id="recoveryPasswordConfirmToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer la confirmation du mot de passe" data-i18n-aria-label="password_hold_to_show">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
-            </svg>
-          </button>
+        <div class="field">
+          <label for="recoveryPasswordConfirm" data-i18n="signup_password_confirm_label">Confirmer le mot de passe</label>
+          <div class="password-field">
+            <input id="recoveryPasswordConfirm" name="new-password-confirm" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" data-i18n-placeholder="signup_password_confirm_placeholder" />
+            <button id="recoveryPasswordConfirmToggle" class="btn password-toggle" type="button" aria-label="Afficher ou masquer la confirmation du mot de passe" data-i18n-aria-label="password_hold_to_show">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5c5.23 0 9.27 3.11 11 7-1.73 3.89-5.77 7-11 7S2.73 15.89 1 12c1.73-3.89 5.77-7 11-7Zm0 2c-3.98 0-7.17 2.12-8.8 5 1.63 2.88 4.82 5 8.8 5s7.17-2.12 8.8-5C19.17 9.12 15.98 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 15a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/>
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
-      <div id="passwordRecoveryStatus" class="status"></div>
-      <div class="modal-actions">
-        <button id="cancelPasswordRecoveryBtn" class="btn" type="button" data-i18n="cancel_button">Annuler</button>
-        <button id="savePasswordRecoveryBtn" class="btn primary" type="button" data-i18n="save_password_button">Enregistrer le mot de passe</button>
-      </div>
+        <div id="passwordRecoveryStatus" class="status"></div>
+        <div class="modal-actions">
+          <button id="cancelPasswordRecoveryBtn" class="btn" type="button" data-i18n="cancel_button">Annuler</button>
+          <button id="savePasswordRecoveryBtn" class="btn primary" type="submit" data-i18n="save_password_button">Enregistrer le mot de passe</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2729,6 +2745,7 @@
       loginScreen: $("loginScreen"),
       loginCard: $("loginCard"),
       signupCard: $("signupCard"),
+      loginForm: $("loginForm"),
       loginEmail: $("loginEmail"),
       loginPassword: $("loginPassword"),
       loginPasswordToggle: $("loginPasswordToggle"),
@@ -2742,6 +2759,7 @@
       signupPasswordToggle: $("signupPasswordToggle"),
       signupPasswordConfirmToggle: $("signupPasswordConfirmToggle"),
       signupStatus: $("signupStatus"),
+      signupForm: $("signupForm"),
       signupSubmitBtn: $("signupSubmitBtn"),
       signupBackBtn: $("signupBackBtn"),
       forgotBtn: $("forgotBtn"),
@@ -2759,6 +2777,8 @@
       changePasswordBtn: $("changePasswordBtn"),
       passwordRecoveryModal: $("passwordRecoveryModal"),
       closePasswordRecoveryModalBtn: $("closePasswordRecoveryModalBtn"),
+      passwordRecoveryForm: $("passwordRecoveryForm"),
+      recoveryEmail: $("recoveryEmail"),
       recoveryPassword: $("recoveryPassword"),
       recoveryPasswordConfirm: $("recoveryPasswordConfirm"),
       recoveryPasswordToggle: $("recoveryPasswordToggle"),
@@ -3138,6 +3158,7 @@
       ui.loginScreen.classList.remove("open");
       ui.recoveryPassword.value = "";
       ui.recoveryPasswordConfirm.value = "";
+      ui.recoveryEmail.value = state.currentSession?.user?.email || ui.loginEmail.value.trim() || "";
       setStatus(ui.passwordRecoveryStatus, "");
       ui.passwordRecoveryModal.classList.add("open");
       bringOverlayToFront(ui.passwordRecoveryModal);
@@ -3162,7 +3183,6 @@
       }
       closePasswordRecoveryModal(false);
       clearAuthRedirectUrl();
-      await sbClient.auth.signOut();
     }
 
     function isPasswordRecoveryUrl() {
@@ -5969,11 +5989,20 @@
     document.addEventListener("click", () => closeMobileMenu());
 
     ui.googleLoginBtn.addEventListener("click", loginWithGoogle);
-    ui.loginBtn.addEventListener("click", login);
+    ui.loginForm.addEventListener("submit", event => {
+      event.preventDefault();
+      login();
+    });
     ui.signupBtn.addEventListener("click", openSignUpScreen);
-    ui.signupSubmitBtn.addEventListener("click", signUp);
+    ui.signupForm.addEventListener("submit", event => {
+      event.preventDefault();
+      signUp();
+    });
     ui.signupBackBtn.addEventListener("click", closeSignUpScreen);
-    ui.savePasswordRecoveryBtn.addEventListener("click", saveRecoveredPassword);
+    ui.passwordRecoveryForm.addEventListener("submit", event => {
+      event.preventDefault();
+      saveRecoveredPassword();
+    });
     ui.cancelPasswordRecoveryBtn.addEventListener("click", cancelPasswordRecovery);
     ui.closePasswordRecoveryModalBtn.addEventListener("click", cancelPasswordRecovery);
     ui.editWebmixBtn.addEventListener("click", () => {
@@ -6344,22 +6373,6 @@
     ui.topbar?.addEventListener("transitionend", event => {
       if (event.propertyName === "transform") {
         updateLayoutMetrics();
-      }
-    });
-
-    ui.loginPassword.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        login();
-      }
-    });
-    ui.signupPasswordConfirm.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        signUp();
-      }
-    });
-    ui.recoveryPasswordConfirm.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        saveRecoveredPassword();
       }
     });
 
