@@ -698,6 +698,9 @@
       display: grid;
       grid-template-rows: auto auto auto auto;
       gap: 6px;
+    }
+
+    .overlay > .tile-card {
       transform: translate(-50%, -50%) scale(var(--tile-modal-scale));
       transform-origin: center;
     }
@@ -1670,24 +1673,6 @@
 
     .login-screen .card {
       width: min(460px, 100%);
-    }
-
-    @media (max-height: 760px) and (min-width: 861px) {
-      .tile-card {
-        --tile-modal-scale: 0.92;
-      }
-    }
-
-    @media (max-height: 680px) and (min-width: 861px) {
-      .tile-card {
-        --tile-modal-scale: 0.84;
-      }
-    }
-
-    @media (max-height: 600px) and (min-width: 861px) {
-      .tile-card {
-        --tile-modal-scale: 0.76;
-      }
     }
 
     @media (max-width: 860px) {
@@ -2837,6 +2822,7 @@
       saveBackgroundBtn: $("saveBackgroundBtn"),
       gridBackgroundImage: $("gridBackgroundImage"),
       tileModal: $("tileModal"),
+      tileCard: document.querySelector("#tileModal .tile-card"),
       closeTileModalBtn: $("closeTileModalBtn"),
       tileModalTitle: $("tileModalTitle"),
       tileTitle: $("tileTitle"),
@@ -4023,6 +4009,7 @@
       ui.webSuggestions.classList.toggle("hidden", candidates.length === 0);
       if (!candidates.length) {
         ui.autoLogoBtn.classList.remove("loading");
+        fitTileModalToViewport();
         return;
       }
 
@@ -4063,6 +4050,7 @@
       ui.autoLogoBtn.classList.remove("loading");
       ui.webSuggestions.classList.toggle("hidden", available.length === 0);
       if (!available.length) {
+        fitTileModalToViewport();
         return;
       }
 
@@ -4083,6 +4071,7 @@
         });
         ui.webSuggestions.appendChild(button);
       });
+      fitTileModalToViewport();
     }
 
     function escapeHtml(value) {
@@ -4658,6 +4647,7 @@
       }
       ui.tileUploadUrl.value = state.uploadedImageUrl || "";
       updatePreview();
+      fitTileModalToViewport();
     }
 
     function getPreviewImageUrl() {
@@ -5088,6 +5078,57 @@
       return imageData.mode;
     }
 
+    let tileModalFitFrame = 0;
+
+    function resetTileModalPosition() {
+      if (!ui.tileCard) {
+        return;
+      }
+      ui.tileCard.style.left = "50%";
+      ui.tileCard.style.top = "50%";
+      ui.tileCard.style.removeProperty("transform");
+      ui.tileCard.style.removeProperty("transform-origin");
+      ui.tileCard.style.setProperty("--tile-modal-scale", "1");
+    }
+
+    function fitTileModalToViewport() {
+      if (!ui.tileCard || !ui.tileModal.classList.contains("open")) {
+        return;
+      }
+
+      window.cancelAnimationFrame(tileModalFitFrame);
+      tileModalFitFrame = window.requestAnimationFrame(() => {
+        if (!ui.tileModal.classList.contains("open")) {
+          return;
+        }
+
+        const viewport = window.visualViewport;
+        const viewportWidth = viewport?.width || document.documentElement.clientWidth || window.innerWidth;
+        const viewportHeight = viewport?.height || document.documentElement.clientHeight || window.innerHeight;
+        const viewportLeft = viewport?.offsetLeft || 0;
+        const viewportTop = viewport?.offsetTop || 0;
+        const horizontalMargin = viewportWidth <= 860 ? 8 : 16;
+        const verticalMargin = viewportHeight <= 680 ? 8 : 16;
+
+        ui.tileCard.style.removeProperty("transform");
+        ui.tileCard.style.removeProperty("transform-origin");
+        ui.tileCard.style.setProperty("--tile-modal-scale", "1");
+        const naturalWidth = ui.tileCard.offsetWidth;
+        const naturalHeight = ui.tileCard.offsetHeight;
+        const widthScale = naturalWidth > 0
+          ? (viewportWidth - horizontalMargin * 2) / naturalWidth
+          : 1;
+        const heightScale = naturalHeight > 0
+          ? (viewportHeight - verticalMargin * 2) / naturalHeight
+          : 1;
+        const fittedScale = Math.max(0.1, Math.min(1, widthScale, heightScale));
+
+        ui.tileCard.style.left = `${viewportLeft + viewportWidth / 2}px`;
+        ui.tileCard.style.top = `${viewportTop + viewportHeight / 2}px`;
+        ui.tileCard.style.setProperty("--tile-modal-scale", fittedScale.toFixed(4));
+      });
+    }
+
     function openTileModal(tile, position = null) {
       clearTimeout(state.saveTileCloseTimer);
       clearTopbarHideTimer();
@@ -5125,16 +5166,23 @@
       state.initialTileSnapshot = buildTileDraftSnapshot();
       refreshSaveTileButtonState();
       syncColorSwatches();
+      resetTileModalPosition();
       ui.tileModal.classList.add("open");
       renderWebSuggestions();
       applyTileModalLivePreview();
+      fitTileModalToViewport();
       window.setTimeout(() => ui.tileTitle.focus(), 30);
     }
 
-    function closeTileModal() {
+    function closeTileModal(options = {}) {
+      const restoreDraft = options?.restoreDraft !== false;
       clearTimeout(state.saveTileCloseTimer);
-      restoreTileModalTilesSnapshot();
+      window.cancelAnimationFrame(tileModalFitFrame);
+      if (restoreDraft) {
+        restoreTileModalTilesSnapshot();
+      }
       ui.tileModal.classList.remove("open");
+      resetTileModalPosition();
       ui.saveTileBtn.disabled = false;
       ui.saveTileBtn.textContent = t("save_button");
       state.editingTile = null;
@@ -5350,6 +5398,7 @@
         ui.saveTileBtn.textContent = t("saved_button");
         setStatus(ui.tileStatus, "");
         loadTiles().catch(() => {});
+        closeTileModal({ restoreDraft: false });
       } catch (error) {
         setStatus(ui.tileStatus, error.message || t("save_error"), "error");
         refreshSaveTileButtonState();
@@ -6221,6 +6270,7 @@
       ui.webOptions.classList.add("hidden");
       ui.imageSettings.classList.toggle("hidden", !((state.imageMode === "upload" || state.imageMode === "web")));
       updatePreview();
+      fitTileModalToViewport();
     });
     ui.modeUpload.addEventListener("click", () => {
       setImageMode("upload");
@@ -6381,16 +6431,25 @@
       const card = titlebar.closest(".card");
       const overlay = card.closest(".overlay");
       let active = false, dragged = false, offsetX = 0, offsetY = 0;
+      let dragScale = 1;
 
       function pointerDown(e) {
         if (e.target.closest("button, input, select, textarea, a")) return;
         const p = e.touches ? e.touches[0] : e;
         const r = card.getBoundingClientRect();
+        dragScale = card.classList.contains("tile-card")
+          ? (Number.parseFloat(getComputedStyle(card).getPropertyValue("--tile-modal-scale")) || 1)
+          : 1;
         offsetX = p.clientX - r.left;
         offsetY = p.clientY - r.top;
         card.style.left = r.left + "px";
         card.style.top = r.top + "px";
-        card.style.transform = "none";
+        if (dragScale !== 1) {
+          card.style.transformOrigin = "top left";
+          card.style.transform = `scale(${dragScale})`;
+        } else {
+          card.style.transform = "none";
+        }
         active = true;
         dragged = false;
         e.preventDefault();
@@ -6399,8 +6458,10 @@
       function pointerMove(e) {
         if (!active) return;
         const p = e.touches ? e.touches[0] : e;
-        card.style.left = Math.max(0, Math.min(window.innerWidth - card.offsetWidth, p.clientX - offsetX)) + "px";
-        card.style.top = Math.max(0, Math.min(window.innerHeight - card.offsetHeight, p.clientY - offsetY)) + "px";
+        const renderedWidth = card.offsetWidth * dragScale;
+        const renderedHeight = card.offsetHeight * dragScale;
+        card.style.left = Math.max(0, Math.min(window.innerWidth - renderedWidth, p.clientX - offsetX)) + "px";
+        card.style.top = Math.max(0, Math.min(window.innerHeight - renderedHeight, p.clientY - offsetY)) + "px";
         dragged = true;
         e.preventDefault();
       }
@@ -6467,9 +6528,18 @@
       }
     });
 
+    if (window.ResizeObserver && ui.tileCard) {
+      const tileModalResizeObserver = new ResizeObserver(() => {
+        fitTileModalToViewport();
+      });
+      tileModalResizeObserver.observe(ui.tileCard);
+    }
+
     window.addEventListener("resize", () => {
       updateLayoutMetrics();
+      fitTileModalToViewport();
     });
+    window.visualViewport?.addEventListener("resize", fitTileModalToViewport);
     document.addEventListener("click", event => {
       if (!event.target.closest("#lang-selector")) {
         closeLangDrop();
