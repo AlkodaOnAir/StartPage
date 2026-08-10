@@ -2308,6 +2308,7 @@
     const SUPABASE_URL = "https://ejblebseqggezptuvqfj.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5JCL-teaTWmLPfDM5UrRoQ_xTFm4yrb";
     const APP_URL = "https://start.alkoda-onair.com";
+    const STARTPAGE_LOGO_CURATOR_ID = "0ff007c0-fa75-4953-9faf-a629933b6dd6";
     const DEFAULT_BACKGROUND = { mode: "color", color: "#060606", src: "", storagePath: "", stretchWidth: false, offsetY: 50 };
     const DEFAULT_CONFIG = { columns: 11, rows: 5, tileSize: 86, background: { ...DEFAULT_BACKGROUND } };
     const TILE_LIMITS = { columns: [1, 30], rows: [1, 30], tileSize: [50, 150] };
@@ -2892,6 +2893,9 @@
       saveTileCloseTimer: null,
       saveSizeCloseTimer: null,
       webSuggestionsRequestId: 0,
+      urlSuggestionTimer: null,
+      tileTitleTouched: false,
+      tileTitleSuggestionRank: 0,
       bookmarksImportSnapshot: null,
       importedBookmarks: [],
       importedFileKind: null,
@@ -3932,6 +3936,96 @@
       throw new Error(t("drop_local_image_only"));
     }
 
+    function normalizedLogoDomain(url) {
+      try {
+        return new URL(normalizeUrl(url)).hostname.toLowerCase().replace(/^www\./, "");
+      } catch {
+        return "";
+      }
+    }
+
+    function inferredTileName(url) {
+      const domain = normalizedLogoDomain(url);
+      if (!domain) {
+        return "";
+      }
+
+      const knownTile = defaultTiles.find(([, candidateUrl]) => normalizedLogoDomain(candidateUrl) === domain);
+      if (knownTile) {
+        return knownTile[0];
+      }
+
+      const labels = domain.split(".").filter(Boolean);
+      const doubleSuffixes = new Set(["co.uk", "com.au", "com.br", "com.cn", "com.mx", "co.jp", "co.nz"]);
+      const suffix = labels.slice(-2).join(".");
+      const brandIndex = doubleSuffixes.has(suffix) ? labels.length - 3 : labels.length - 2;
+      const brand = labels[Math.max(0, brandIndex)] || labels[0] || "";
+      return brand
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/^./, letter => letter.toUpperCase());
+    }
+
+    function applySuggestedTileTitle(candidate, rank = 1) {
+      const clean = String(candidate || "").replace(/\s+/g, " ").trim();
+      if (!clean || clean.length > 80 || state.editingTile || state.tileTitleTouched || rank < state.tileTitleSuggestionRank) {
+        return;
+      }
+      state.tileTitleSuggestionRank = rank;
+      ui.tileTitle.value = clean;
+      updatePreview();
+    }
+
+    async function startPageLogoCandidatesFor(url) {
+      const domain = normalizedLogoDomain(url);
+      if (!domain || !state.currentSession) {
+        return [];
+      }
+
+      try {
+        const rows = await restTableRequest("shared_logos", {
+          method: "GET",
+          query: `?select=storage_path,display_name&domain=eq.${encodeURIComponent(domain)}&limit=3`
+        }) || [];
+        if (rows[0]?.display_name) {
+          applySuggestedTileTitle(rows[0].display_name, 2);
+        }
+        const candidates = await Promise.all(rows.map(async row => ({
+          label: "Logo StartPage",
+          url: await signedUploadUrl(row.storage_path),
+          storagePath: row.storage_path
+        })));
+        return candidates.filter(candidate => candidate.url);
+      } catch {
+        return [];
+      }
+    }
+
+    async function syncCuratorStartPageLogo(tile) {
+      if (state.currentUserId !== STARTPAGE_LOGO_CURATOR_ID || !tile?.id) {
+        return;
+      }
+      const domain = normalizedLogoDomain(tile.url);
+      const imageData = parseTileImageData(tile.image);
+      if (!domain || domain === "localhost" || /^[0-9.]+$/.test(domain) || imageData.mode !== "upload" || !imageData.storagePath) {
+        return;
+      }
+      await restTableRequest("shared_logos", {
+        method: "POST",
+        query: "?on_conflict=domain",
+        body: {
+          domain,
+          storage_path: imageData.storagePath,
+          display_name: tile.title || inferredTileName(tile.url),
+          submitted_by: state.currentUserId,
+          source_tile_id: tile.id,
+          updated_at: new Date().toISOString()
+        },
+        prefer: "resolution=merge-duplicates,return=minimal"
+      });
+    }
+
     function logoCandidatesFor(url, title = "") {
       try {
         const parsed = new URL(normalizeUrl(url));
@@ -4013,6 +4107,9 @@
         return;
       }
 
+      const startPageCandidates = await startPageLogoCandidatesFor(rawUrl);
+      if (requestId !== state.webSuggestionsRequestId) return;
+
       // Enrichir avec Microlink (logo + og:image)
       try {
         const microlinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(normalizeUrl(rawUrl))}`);
@@ -4020,6 +4117,7 @@
         if (microlinkRes.ok) {
           const microlinkData = await microlinkRes.json();
           if (requestId !== state.webSuggestionsRequestId) return;
+          applySuggestedTileTitle(microlinkData?.data?.title, 1);
           const logoUrl = microlinkData?.data?.logo?.url;
           const imageUrl = microlinkData?.data?.image?.url;
           if (logoUrl) candidates.unshift({ label: "Logo (Microlink)", url: logoUrl });
@@ -4028,6 +4126,7 @@
       } catch { /* silencieux si Microlink échoue */ }
 
       if (requestId !== state.webSuggestionsRequestId) return;
+      candidates.unshift(...startPageCandidates);
 
       const uniqueCandidates = candidates.filter((candidate, index, list) =>
         list.findIndex(entry => entry.url === candidate.url) === index
@@ -4061,6 +4160,17 @@
         button.title = candidate.label;
         button.innerHTML = `<img src="${escapeHtml(candidate.url)}" alt="${escapeHtml(candidate.label)}"><span class="web-suggestion-label">${escapeHtml(candidate.label)}</span>`;
         button.addEventListener("click", () => {
+          if (candidate.storagePath) {
+            state.uploadedImagePath = candidate.storagePath;
+            state.uploadedImageUrl = candidate.url;
+            state.uploadedImagePreviewUrl = candidate.url;
+            state.uploadImageEnabled = true;
+            state.webImageEnabled = false;
+            ui.tileUploadUrl.value = candidate.url;
+            ui.webSuggestions.classList.add("hidden");
+            setImageMode("upload");
+            return;
+          }
           ui.tileImage.value = candidate.url;
           state.webImageEnabled = true;
           state.uploadImageEnabled = false;
@@ -4789,7 +4899,7 @@
 
     function updatePreview() {
       const imageUrl = getPreviewImageUrl();
-      const title = ui.tileTitle.value.trim() || t("preview_label");
+      const title = ui.tileTitle.value.trim() || inferredTileName(ui.tileUrl.value) || t("preview_label");
       syncImageControls();
       ui.preview.className = "preview";
       ui.preview.innerHTML = "";
@@ -5136,6 +5246,8 @@
       state.tileModalTilesSnapshot = cloneTilesSnapshot(state.tiles);
       state.editingTile = tile;
       state.pendingTilePosition = tile ? (Number(tile.position) || null) : position;
+      state.tileTitleTouched = Boolean(tile);
+      state.tileTitleSuggestionRank = 0;
       state.imageTab = "color";
       ui.tileUpload.value = "";
       const imageData = parseTileImageData(tile?.image);
@@ -5171,12 +5283,13 @@
       renderWebSuggestions();
       applyTileModalLivePreview();
       fitTileModalToViewport();
-      window.setTimeout(() => ui.tileTitle.focus(), 30);
+      window.setTimeout(() => (tile ? ui.tileTitle : ui.tileUrl).focus(), 30);
     }
 
     function closeTileModal(options = {}) {
       const restoreDraft = options?.restoreDraft !== false;
       clearTimeout(state.saveTileCloseTimer);
+      clearTimeout(state.urlSuggestionTimer);
       window.cancelAnimationFrame(tileModalFitFrame);
       if (restoreDraft) {
         restoreTileModalTilesSnapshot();
@@ -5312,8 +5425,11 @@
 
     async function saveTile() {
       clearTimeout(state.saveTileCloseTimer);
-      const title = ui.tileTitle.value.trim();
       const url = normalizeUrl(ui.tileUrl.value);
+      const title = ui.tileTitle.value.trim() || inferredTileName(url);
+      if (!ui.tileTitle.value.trim() && title) {
+        ui.tileTitle.value = title;
+      }
 
       if (state.imageMode === "upload" && state.uploadImageEnabled && state.uploadPending) {
         setStatus(ui.tileStatus, t("image_finalize"));
@@ -5393,6 +5509,9 @@
           state.initialTileSnapshot = snapshotFromPayload(payload, state.pendingTilePosition || savedTile.position || null);
           state.tileModalTilesSnapshot = cloneTilesSnapshot(state.tiles);
           renderTiles();
+          syncCuratorStartPageLogo(savedTile).catch(error => {
+            console.warn("Logo StartPage non synchronise", error);
+          });
         }
         ui.saveTileBtn.disabled = true;
         ui.saveTileBtn.textContent = t("saved_button");
@@ -6313,11 +6432,17 @@
     ui.autoLogoBtn.addEventListener("click", () => {
       renderWebSuggestions();
     });
-    ui.tileTitle.addEventListener("input", updatePreview);
+    ui.tileTitle.addEventListener("input", () => {
+      state.tileTitleTouched = true;
+      updatePreview();
+    });
     ui.tileUrl.addEventListener("input", () => {
-      if (state.imageMode === "web") {
-        renderWebSuggestions();
+      if (!state.editingTile && !state.tileTitleTouched) {
+        state.tileTitleSuggestionRank = 0;
+        ui.tileTitle.value = inferredTileName(ui.tileUrl.value);
       }
+      clearTimeout(state.urlSuggestionTimer);
+      state.urlSuggestionTimer = window.setTimeout(renderWebSuggestions, 450);
       updatePreview();
     });
     ui.tileImage.addEventListener("input", () => {
